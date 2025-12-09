@@ -1,0 +1,25 @@
+From: security-alert@example.com
+To: user@example.org
+Subject: Important account verification required
+Content-Type: multipart/alternative; boundary="BOUNDARY"
+
+--BOUNDARY
+Content-Type: text/plain; charset="utf-8"
+
+Dear user,
+
+We noticed unusual sign-in attempts. Please verify your account within 24 hours to avoid suspension.
+
+Thanks,
+Security Team
+--BOUNDARY
+Content-Type: text/html; charset="utf-8"
+
+<html>
+  <body>
+    <p>Dear user,</p>
+    <p>We noticed unusual sign-in attempts. Please verify your account within <strong>24 hours</strong> to avoid suspension.</p>
+    <p>Thanks,<br/>Security Team</p>
+  </body>
+</html>
+--BOUNDARY--
