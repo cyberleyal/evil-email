@@ -1,6 +1,6 @@
 # Phishing Detector CLI Prototype
 
-A Python prototype for detecting phishing emails with both LLM-assisted reasoning (via Google Gemini) and traditional machine learning. The project is organized to support feature extraction, LLM scoring, and classifier-based detection from local email files.
+A Python prototype for detecting phishing emails with both LLM-assisted reasoning (via an OpenAI-compatible proxy endpoint) and traditional machine learning. The project is organized to support feature extraction, LLM scoring, and classifier-based detection from local email files.
 
 ## Project layout
 ```
@@ -11,6 +11,7 @@ phishing_detector/
 │   ├── __init__.py
 │   ├── features.py         # Feature extraction
 │   ├── llm_judge.py        # LLM scoring
+│   ├── llm_client.py       # Proxy OpenAI client builder
 │   └── classifier.py       # Traditional classifier
 ├── data/
 │   └── samples/            # Sample emails
@@ -21,7 +22,7 @@ phishing_detector/
 
 ## Requirements
 - Python 3.10+
-- A Google Gemini API key (`GEMINI_API_KEY` or `GOOGLE_API_KEY`) if you want LLM-powered scoring
+- An API key for your OpenAI-compatible proxy (defaults to `https://api.gpt.ge/v1/`) if you want LLM-powered scoring.
 
 Install dependencies:
 ```bash
@@ -31,19 +32,19 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-The CLI uses `rich` for colored/tabular output and Google Gemini for LLM-powered scoring. Configure your API key (required for
-`--mode llm` and `--mode hybrid`):
+### Configure the proxy LLM
+The CLI uses `rich` for colored/tabular output and an OpenAI-compatible proxy for LLM-powered scoring. Configure your API key (required for `--mode llm` and `--mode hybrid`):
 ```bash
-export GEMINI_API_KEY="your_gemini_api_key"
-# or
-export GOOGLE_API_KEY="your_google_api_key"
+export PROXY_API_KEY="你的中转平台 api key"
+export PROXY_BASE_URL="https://api.gpt.ge/v1/"  # 可选，若与默认不同
+# 兼容 OPENAI_API_KEY / PROXY_API_KEY 变量名
 ```
-If no Gemini API key is set, the CLI will warn and automatically fall back to classifier-only mode.
+If no proxy API key is set, the CLI will warn and automatically fall back to classifier-only mode.
 
 ## Running the CLI
 Analyze a local email file (.eml or .txt):
 ```bash
-python phishing_detector/main.py data/samples/sample_email.eml --mode llm
+python phishing_detector/main.py data/samples/sample_email.eml --mode hybrid
 ```
 
 - `--mode llm`: LLM-only decision that returns a JSON-parsed label/score/reason.

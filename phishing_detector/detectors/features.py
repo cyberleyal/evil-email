@@ -5,14 +5,12 @@ import email
 import email.policy
 import re
 import json
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
 
-from google import genai
-
 from phishing_detector.config import AppConfig
+from phishing_detector.detectors.llm_client import build_proxy_openai_client
 
 
 @dataclass
@@ -179,21 +177,11 @@ def extract_basic_features(email: Dict[str, str]) -> Dict[str, object]:
     }
 
 
-def build_gemini_client(cfg: AppConfig | None = None) -> genai.Client:
-    """Initialize the Gemini client from config or environment variables."""
-
-    api_key = cfg.llm.api_key if cfg and cfg.llm.api_key else None
-    api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY 或 GOOGLE_API_KEY 未设置，无法调用 Gemini。")
-    return genai.Client(api_key=api_key)
-
-
 def extract_llm_features(email: Dict[str, str], cfg: AppConfig | None = None) -> Dict[str, object]:
-    """Call Gemini to score LLM-likeness and phishing risk."""
+    """Call OpenAI-compatible proxy to score LLM-likeness and phishing risk."""
 
-    client = build_gemini_client(cfg)
-    model = cfg.llm.model if cfg else "gemini-1.5-flash"
+    client = build_proxy_openai_client(cfg)
+    model = cfg.llm.model if cfg else "gpt-4.1-mini"
     temperature = cfg.llm.temperature if cfg else 0.0
     max_tokens = cfg.llm.max_tokens if cfg else 256
 
@@ -213,20 +201,30 @@ def extract_llm_features(email: Dict[str, str], cfg: AppConfig | None = None) ->
         f"{prompt}\n\nSubject: {subject}\n\nBody:\n{body}"
     )
 
-    response = client.models.generate_content(
-        model=model,
-        contents=prompt_text,
-        generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
-    )
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "你是一名安全分析助手，必须输出 JSON。",
+                },
+                {"role": "user", "content": prompt_text},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+    except Exception as exc:  # pragma: no cover - network/API failure
+        raise RuntimeError(f"LLM call failed: {exc}") from exc
 
-    content = response.text
+    content = response.choices[0].message.content if response.choices else ""
     if not content:
-        raise RuntimeError("LLM(Gemini) response was empty when extracting features.")
+        raise RuntimeError("LLM response was empty when extracting features.")
 
     try:
         data = json.loads(content)
     except json.JSONDecodeError as exc:  # pragma: no cover - defensive
-        raise RuntimeError(f"Failed to parse LLM JSON response: {exc}") from exc
+        raise RuntimeError(f"Failed to parse LLM JSON response: {exc}. raw content: {content}") from exc
 
     def _safe_float(key: str) -> float:
         value = data.get(key, 0.0)

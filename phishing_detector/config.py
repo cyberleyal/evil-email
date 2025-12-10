@@ -9,7 +9,8 @@ from typing import Optional
 @dataclass
 class LLMConfig:
     api_key: Optional[str] = None
-    model: str = "gemini-1.5-flash"
+    model: str = "gpt-4.1-mini"
+    base_url: str = "https://api.gpt.ge/v1/"
     temperature: float = 0.0
     max_tokens: int = 256
 

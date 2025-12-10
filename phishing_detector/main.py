@@ -45,7 +45,9 @@ def _has_llm_key(cfg: config.AppConfig) -> bool:
     """Check if an API key is available for LLM features/judgement."""
 
     return bool(
-        cfg.llm.api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        cfg.llm.api_key
+        or os.getenv("PROXY_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
     )
 
 
@@ -143,7 +145,7 @@ def main() -> None:
     llm_available = _has_llm_key(cfg)
     if not llm_available and args.mode in {"llm", "hybrid"}:
         console.print(
-            "[yellow]未检测到 GEMINI_API_KEY/GOOGLE_API_KEY，自动降级为分类器模式（模式 B）。[/yellow]"
+            "[yellow]未检测到 PROXY_API_KEY/OPENAI_API_KEY，自动降级为分类器模式（模式 B）。[/yellow]"
         )
         args.mode = "clf"
 

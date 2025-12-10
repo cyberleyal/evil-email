@@ -1,11 +1,11 @@
-"""LLM-assisted phishing judgement utilities powered by Gemini."""
+"""LLM-assisted phishing judgement utilities powered by an OpenAI-compatible proxy."""
 from __future__ import annotations
 
 import json
 from typing import Dict
 
 from phishing_detector.config import AppConfig
-from phishing_detector.detectors.features import build_gemini_client
+from phishing_detector.detectors.llm_client import build_proxy_openai_client
 
 
 def _prepare_messages(email: Dict[str, str]) -> list[Dict[str, str]]:
@@ -36,9 +36,9 @@ def _safe_label(raw_label: str | None) -> str:
 
 
 def llm_judge(email: Dict[str, str], cfg: AppConfig) -> Dict[str, object]:
-    """Call Gemini to obtain a phishing judgement with structured JSON."""
+    """Call the OpenAI-compatible proxy to obtain a phishing judgement with structured JSON."""
 
-    client = build_gemini_client(cfg)
+    client = build_proxy_openai_client(cfg)
     model = cfg.llm.model
     temperature = cfg.llm.temperature
     max_tokens = cfg.llm.max_tokens
@@ -51,10 +51,14 @@ def llm_judge(email: Dict[str, str], cfg: AppConfig) -> Dict[str, object]:
     )
 
     try:
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=model,
-            contents=prompt_text,
-            generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+            messages=[
+                {"role": "system", "content": "你是一名安全分析助手，必须输出 JSON。"},
+                {"role": "user", "content": prompt_text},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
     except Exception as exc:  # pragma: no cover - network/API failure
         return {
@@ -64,7 +68,7 @@ def llm_judge(email: Dict[str, str], cfg: AppConfig) -> Dict[str, object]:
             "triggered_features": [],
         }
 
-    content = response.text
+    content = response.choices[0].message.content if response.choices else ""
     if not content:
         return {
             "label": "unknown",
