@@ -1,13 +1,11 @@
-"""LLM-assisted phishing judgement utilities."""
+"""LLM-assisted phishing judgement utilities powered by Gemini."""
 from __future__ import annotations
 
 import json
 from typing import Dict
 
-from openai import OpenAI
-
 from phishing_detector.config import AppConfig
-from phishing_detector.detectors.features import _build_llm_client
+from phishing_detector.detectors.features import build_gemini_client
 
 
 def _prepare_messages(email: Dict[str, str]) -> list[Dict[str, str]]:
@@ -38,20 +36,25 @@ def _safe_label(raw_label: str | None) -> str:
 
 
 def llm_judge(email: Dict[str, str], cfg: AppConfig) -> Dict[str, object]:
-    """Call OpenAI to obtain a phishing judgement with structured JSON."""
+    """Call Gemini to obtain a phishing judgement with structured JSON."""
 
-    client: OpenAI = _build_llm_client(cfg)
+    client = build_gemini_client(cfg)
     model = cfg.llm.model
     temperature = cfg.llm.temperature
     max_tokens = cfg.llm.max_tokens
 
+    prompt_text = "\n\n".join(
+        [
+            "你是一名安全分析助手，必须输出 JSON。",
+            _prepare_messages(email)[1]["content"],
+        ]
+    )
+
     try:
-        response = client.chat.completions.create(
+        response = client.models.generate_content(
             model=model,
-            messages=_prepare_messages(email),
-            temperature=temperature,
-            max_tokens=max_tokens,
-            response_format={"type": "json_object"},
+            contents=prompt_text,
+            generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
         )
     except Exception as exc:  # pragma: no cover - network/API failure
         return {
@@ -61,7 +64,7 @@ def llm_judge(email: Dict[str, str], cfg: AppConfig) -> Dict[str, object]:
             "triggered_features": [],
         }
 
-    content = response.choices[0].message.content
+    content = response.text
     if not content:
         return {
             "label": "unknown",

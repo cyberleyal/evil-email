@@ -9,7 +9,7 @@ from typing import Optional
 @dataclass
 class LLMConfig:
     api_key: Optional[str] = None
-    model: str = "gpt-4o-mini"
+    model: str = "gemini-1.5-flash"
     temperature: float = 0.0
     max_tokens: int = 256
 

@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
 
-from openai import OpenAI
+from google import genai
 
 from phishing_detector.config import AppConfig
 
@@ -179,23 +179,21 @@ def extract_basic_features(email: Dict[str, str]) -> Dict[str, object]:
     }
 
 
-def _build_llm_client(cfg: AppConfig | None = None) -> OpenAI:
-    """Initialize the OpenAI client from config or environment."""
+def build_gemini_client(cfg: AppConfig | None = None) -> genai.Client:
+    """Initialize the Gemini client from config or environment variables."""
 
-    api_key = None
-    if cfg:
-        api_key = cfg.llm.api_key
-    api_key = api_key or os.getenv("OPENAI_API_KEY")
+    api_key = cfg.llm.api_key if cfg and cfg.llm.api_key else None
+    api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set for LLM feature extraction.")
-    return OpenAI(api_key=api_key)
+        raise RuntimeError("GEMINI_API_KEY 或 GOOGLE_API_KEY 未设置，无法调用 Gemini。")
+    return genai.Client(api_key=api_key)
 
 
 def extract_llm_features(email: Dict[str, str], cfg: AppConfig | None = None) -> Dict[str, object]:
-    """Call OpenAI to score LLM-likeness and phishing risk."""
+    """Call Gemini to score LLM-likeness and phishing risk."""
 
-    client = _build_llm_client(cfg)
-    model = cfg.llm.model if cfg else "gpt-4o-mini"
+    client = build_gemini_client(cfg)
+    model = cfg.llm.model if cfg else "gemini-1.5-flash"
     temperature = cfg.llm.temperature if cfg else 0.0
     max_tokens = cfg.llm.max_tokens if cfg else 256
 
@@ -210,25 +208,20 @@ def extract_llm_features(email: Dict[str, str], cfg: AppConfig | None = None) ->
         "只输出 JSON，不要额外解释。"
     )
 
-    messages = [
-        {"role": "system", "content": "你是一名安全分析助手，返回结构化 JSON 评分。"},
-        {
-            "role": "user",
-            "content": f"{prompt}\n\nSubject: {subject}\n\nBody:\n{body}",
-        },
-    ]
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        response_format={"type": "json_object"},
+    prompt_text = (
+        "你是一名安全分析助手，返回结构化 JSON 评分。\n\n"
+        f"{prompt}\n\nSubject: {subject}\n\nBody:\n{body}"
     )
 
-    content = response.choices[0].message.content
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt_text,
+        generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+    )
+
+    content = response.text
     if not content:
-        raise RuntimeError("LLM response was empty when extracting features.")
+        raise RuntimeError("LLM(Gemini) response was empty when extracting features.")
 
     try:
         data = json.loads(content)

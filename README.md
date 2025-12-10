@@ -1,6 +1,6 @@
 # Phishing Detector CLI Prototype
 
-A Python prototype for detecting phishing emails with both LLM-assisted reasoning and traditional machine learning. The project is organized to support feature extraction, LLM scoring, and classifier-based detection from local email files.
+A Python prototype for detecting phishing emails with both LLM-assisted reasoning (via Google Gemini) and traditional machine learning. The project is organized to support feature extraction, LLM scoring, and classifier-based detection from local email files.
 
 ## Project layout
 ```
@@ -21,7 +21,7 @@ phishing_detector/
 
 ## Requirements
 - Python 3.10+
-- An OpenAI API key (for real LLM scoring)
+- A Google Gemini API key (`GEMINI_API_KEY` or `GOOGLE_API_KEY`) if you want LLM-powered scoring
 
 Install dependencies:
 ```bash
@@ -31,12 +31,14 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-The CLI uses `rich` for colored/tabular output and OpenAI for LLM-powered scoring. Configure your API key (required for
+The CLI uses `rich` for colored/tabular output and Google Gemini for LLM-powered scoring. Configure your API key (required for
 `--mode llm` and `--mode hybrid`):
 ```bash
-export OPENAI_API_KEY="sk-..."
+export GEMINI_API_KEY="your_gemini_api_key"
+# or
+export GOOGLE_API_KEY="your_google_api_key"
 ```
-If `OPENAI_API_KEY` is not set, the CLI will warn and automatically fall back to classifier-only mode.
+If no Gemini API key is set, the CLI will warn and automatically fall back to classifier-only mode.
 
 ## Running the CLI
 Analyze a local email file (.eml or .txt):
