@@ -25,6 +25,7 @@ class ModelConfig:
 class AppConfig:
     llm: LLMConfig = field(default_factory=LLMConfig)
     model: ModelConfig = field(default_factory=ModelConfig)
+    llm_client: str = "trans"  # "trans" uses proxy, "openai" uses official API
 
     def resolve_model_path(self) -> Path:
         """Return an absolute path for the classifier checkpoint."""

@@ -5,7 +5,7 @@ import json
 from typing import Dict
 
 from phishing_detector.config import AppConfig
-from phishing_detector.detectors.llm_client import build_proxy_openai_client
+from phishing_detector.detectors.llm_client import build_llm_client
 
 
 def _prepare_messages(email: Dict[str, str]) -> list[Dict[str, str]]:
@@ -38,7 +38,7 @@ def _safe_label(raw_label: str | None) -> str:
 def llm_judge(email: Dict[str, str], cfg: AppConfig) -> Dict[str, object]:
     """Call the OpenAI-compatible proxy to obtain a phishing judgement with structured JSON."""
 
-    client = build_proxy_openai_client(cfg)
+    client = build_llm_client(cfg)
     model = cfg.llm.model
     temperature = cfg.llm.temperature
     max_tokens = cfg.llm.max_tokens

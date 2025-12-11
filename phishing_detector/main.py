@@ -38,17 +38,27 @@ def parse_args() -> argparse.Namespace:
         default="llm",
         help="Detection mode: llm-only, clf-only, or hybrid blend",
     )
+    parser.add_argument(
+        "--lc",
+        "--llm-client",
+        dest="llm_client",
+        choices=["trans", "openai"],
+        default="trans",
+        help="选择 LLM 调用方式: 'trans' 使用中转API, 'openai' 直接使用官方 OpenAI API",
+    )
     return parser.parse_args()
 
 
 def _has_llm_key(cfg: config.AppConfig) -> bool:
     """Check if an API key is available for LLM features/judgement."""
 
-    return bool(
-        cfg.llm.api_key
-        or os.getenv("PROXY_API_KEY")
-        or os.getenv("OPENAI_API_KEY")
-    )
+    if cfg.llm.api_key:
+        return True
+
+    if cfg.llm_client == "openai":
+        return bool(os.getenv("OPENAI_API_KEY"))
+
+    return bool(os.getenv("PROXY_API_KEY") or os.getenv("OPENAI_API_KEY"))
 
 
 def render_output(
@@ -108,6 +118,7 @@ def render_output(
 def main() -> None:
     args = parse_args()
     cfg = config.AppConfig()
+    cfg.llm_client = args.llm_client
     console = Console()
 
     try:
@@ -144,8 +155,9 @@ def main() -> None:
 
     llm_available = _has_llm_key(cfg)
     if not llm_available and args.mode in {"llm", "hybrid"}:
+        required = "OPENAI_API_KEY" if args.llm_client == "openai" else "PROXY_API_KEY/OPENAI_API_KEY"
         console.print(
-            "[yellow]未检测到 PROXY_API_KEY/OPENAI_API_KEY，自动降级为分类器模式（模式 B）。[/yellow]"
+            f"[yellow]未检测到 {required}，自动降级为分类器模式（模式 B）。[/yellow]"
         )
         args.mode = "clf"
 

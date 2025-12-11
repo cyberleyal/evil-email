@@ -1,4 +1,4 @@
-"""Utility to configure the OpenAI-compatible proxy client."""
+"""Utilities to configure OpenAI-compatible clients (proxy or direct)."""
 from __future__ import annotations
 
 import os
@@ -27,3 +27,26 @@ def build_proxy_openai_client(cfg: AppConfig | None = None):
     openai.base_url = base_url
     openai.default_headers = {"x-foo": "true"}
     return openai
+
+
+def build_direct_openai_client(cfg: AppConfig | None = None):
+    """Configure the official OpenAI client with direct API access."""
+
+    api_key = cfg.llm.api_key if cfg and cfg.llm.api_key else None
+    api_key = api_key or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("使用 openai 直连模式时，需要设置 OPENAI_API_KEY。")
+
+    openai.api_key = api_key
+    openai.base_url = "https://api.openai.com/v1/"
+    return openai
+
+
+def build_llm_client(cfg: AppConfig | None = None):
+    """Dispatch to proxy or direct OpenAI client based on configuration."""
+
+    cfg = cfg or AppConfig()
+    mode = getattr(cfg, "llm_client", "trans")
+    if mode == "openai":
+        return build_direct_openai_client(cfg)
+    return build_proxy_openai_client(cfg)

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from phishing_detector.config import AppConfig
-from phishing_detector.detectors.llm_client import build_proxy_openai_client
+from phishing_detector.detectors.llm_client import build_llm_client
 
 
 @dataclass
@@ -180,7 +180,7 @@ def extract_basic_features(email: Dict[str, str]) -> Dict[str, object]:
 def extract_llm_features(email: Dict[str, str], cfg: AppConfig | None = None) -> Dict[str, object]:
     """Call OpenAI-compatible proxy to score LLM-likeness and phishing risk."""
 
-    client = build_proxy_openai_client(cfg)
+    client = build_llm_client(cfg)
     model = cfg.llm.model if cfg else "gpt-4.1-mini"
     temperature = cfg.llm.temperature if cfg else 0.0
     max_tokens = cfg.llm.max_tokens if cfg else 256
