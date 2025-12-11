@@ -49,6 +49,16 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def shorten_reason(reason: Optional[str], max_len: int = 150) -> str:
+    """Truncate a reason string for table display."""
+
+    if reason is None:
+        return ""
+    if len(reason) <= max_len:
+        return reason
+    return reason[: max_len - 3] + "..."
+
+
 def _has_llm_key(cfg: config.AppConfig) -> bool:
     """Check if an API key is available for LLM features/judgement."""
 
@@ -87,7 +97,7 @@ def render_output(
         return (
             str(result.get("label", "unknown")),
             f"{float(result.get('score', 0.0)):.2f}",
-            (result.get("reason") or "")[:200],
+            shorten_reason(result.get("reason")),
         )
 
     llm_label, llm_score, llm_reason = _fmt_row(llm_result)
@@ -113,6 +123,21 @@ def render_output(
     console.print(Panel(header, expand=False))
     console.print(table)
     console.print(features_table)
+
+    full_reasons = []
+    if llm_result:
+        full_reasons.append(("llm", llm_result))
+    if clf_result:
+        full_reasons.append(("clf", clf_result))
+
+    if full_reasons:
+        console.print("\n[bold]完整原因说明：[/bold]")
+        for idx, (mode_name, result) in enumerate(full_reasons, start=1):
+            label = result.get("label", "unknown")
+            score = float(result.get("score", 0.0))
+            reason_text = result.get("reason") or "(无理由返回)"
+            console.print(f"[{idx}] mode={mode_name} label={label} score={score:.2f}")
+            console.print(reason_text)
 
 
 def main() -> None:
