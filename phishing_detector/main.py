@@ -77,6 +77,7 @@ def render_output(
     llm_result: Optional[Dict[str, Any]],
     clf_result: Optional[Dict[str, Any]],
     feature_result: FeatureExtractionResult,
+    run_mode: str,
 ) -> None:
     """Render detection results with rich formatting."""
 
@@ -124,19 +125,21 @@ def render_output(
     console.print(table)
     console.print(features_table)
 
-    full_reasons = []
-    if llm_result:
-        full_reasons.append(("llm", llm_result))
-    if clf_result:
-        full_reasons.append(("clf", clf_result))
+    full_reasons: list[str] = []
+    if run_mode in {"llm", "hybrid"} and llm_result:
+        reason_text = llm_result.get("reason")
+        if reason_text:
+            full_reasons.append(reason_text)
+
+    if run_mode == "hybrid":
+        hybrid_reason = overall.get("reason")
+        if hybrid_reason:
+            full_reasons.append(hybrid_reason)
 
     if full_reasons:
         console.print("\n[bold]完整原因说明：[/bold]")
-        for idx, (mode_name, result) in enumerate(full_reasons, start=1):
-            label = result.get("label", "unknown")
-            score = float(result.get("score", 0.0))
-            reason_text = result.get("reason") or "(无理由返回)"
-            console.print(f"[{idx}] mode={mode_name} label={label} score={score:.2f}")
+        for idx, reason_text in enumerate(full_reasons, start=1):
+            console.print(f"[{idx}]")
             console.print(reason_text)
 
 
@@ -227,6 +230,7 @@ def main() -> None:
         llm_result=llm_result,
         clf_result=clf_result,
         feature_result=feature_result,
+        run_mode=args.mode,
     )
 
 
