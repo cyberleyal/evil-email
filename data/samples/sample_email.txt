@@ -1,0 +1,9 @@
+Subject: Important Account Update
+
+Dear user,
+
+Your account security is important to us. Please click the link below to verify your account details and avoid any interruption.
+
+https://example.com/verify
+
+Thank you!
