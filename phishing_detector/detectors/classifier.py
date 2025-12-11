@@ -116,6 +116,5 @@ def predict_with_classifier(classifier: LogisticRegression, feature_result: Feat
     return {
         "label": "phishing" if prob >= 0.5 else "benign",
         "score": float(prob),
-        "reason": "Traditional classifier probability output.",
         "triggered_features": feature_result.keyword_hits,
     }

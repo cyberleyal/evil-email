@@ -125,20 +125,20 @@ def render_output(
     console.print(table)
     console.print(features_table)
 
-    full_reasons: list[str] = []
+    reason_entries: list[str] = []
     if run_mode in {"llm", "hybrid"} and llm_result:
-        reason_text = llm_result.get("reason")
-        if reason_text:
-            full_reasons.append(reason_text)
+        llm_reason = llm_result.get("reason")
+        if llm_reason:
+            reason_entries.append(llm_reason)
 
     if run_mode == "hybrid":
         hybrid_reason = overall.get("reason")
         if hybrid_reason:
-            full_reasons.append(hybrid_reason)
+            reason_entries.append(hybrid_reason)
 
-    if full_reasons:
+    if reason_entries:
         console.print("\n[bold]完整原因说明：[/bold]")
-        for idx, reason_text in enumerate(full_reasons, start=1):
+        for idx, reason_text in enumerate(reason_entries, start=1):
             console.print(f"[{idx}]")
             console.print(reason_text)
 
@@ -211,7 +211,7 @@ def main() -> None:
         combined_score = (llm_result.get("score", 0.0) + clf_result.get("score", 0.0)) / 2.0
         combined_label = "phishing" if llm_result.get("label") == "phishing" or clf_result.get("label") == "phishing" else "benign"
         combined_reason = (
-            f"LLM: {llm_result.get('reason', '')}; CLF: {clf_result.get('reason', '')}"
+            f"LLM: {llm_result.get('reason') or ''}; CLF: {clf_result.get('reason') or ''}"
         ).strip()
 
         detection = {
